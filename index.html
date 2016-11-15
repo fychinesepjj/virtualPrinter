@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+    <script src="result.js"></script>
+    <script src="utils.js"></script>
+    <script src="printerProcessor.js"></script>
+</head>
+<body>
+    <button id="print">print</button>
+</body>
+<script>
+var device = new PrintDevice({
+    fontSize: 30,
+    fontFamily: 'M+ 2m'
+})
+var p = new Printer(device);
+document.getElementById('print').addEventListener('click', function (){
+    p.print(hashTree);
+}, false);
+</script>
+</html>

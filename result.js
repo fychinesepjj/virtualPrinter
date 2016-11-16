@@ -1,10 +1,14 @@
-var hashTree = {
+var hashTree = [{
     "type": "table",
-    "props": {},
+    "props": {
+        "fontSize": 24
+    },
     "children": [
         {
             "type": "tr",
-            "props": {},
+            "props": {
+                "fontSize": 36
+            },
             "children": [
                 {
                     "type": "td",
@@ -22,12 +26,13 @@ var hashTree = {
         },
         {
             "type": "tr",
-            "props": {},
+            "props": {
+            },
             "children": [
                 {
                     "type": "td",
                     "props": {
-                        "width": 10
+                        "width": 10,
                     },
                     "children": "商品名称"
                 },
@@ -102,4 +107,12 @@ var hashTree = {
             ]
         }
     ]
-};
+},
+{
+    "type": "table",
+    "props": {
+        "fontFamily": "宋体"
+    },
+    "children": "test table"
+}
+];

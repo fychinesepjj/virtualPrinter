@@ -12,6 +12,16 @@ TreeNode.prototype.add = function add(node) {
     node && this.nodeList.push(node)
 }
 
+TreeNode.prototype.toArray = function toArray() {
+    var nodeToArray = [];
+    if (this.nodeList) {
+        this.nodeList.forEach(function (node) {
+            nodeToArray.push(node.text);
+        });
+    }
+    return nodeToArray;
+}
+
 TreeNode.prototype.setProps = function setProps(props) {
     props && (this.props = Utils.deepCopy(props));
 }
@@ -25,6 +35,7 @@ TreeNode.prototype.clone = function clone(isDeepClone) {
     if (isDeepClone) {
         cloneNode.nodeList = Utils.deepCopy(this.nodeList);
     }
+    cloneNode.setText(this.text);
     cloneNode.setProps(this.props);
     return cloneNode;
 }
@@ -55,24 +66,27 @@ Printer.prototype.pretreat = function pretreat(basicHashTree) {
                 case 'table':
                 case 'tr':
                     if (Utils.isArray(node.children) && node.children.length) {
-                        var subNodes = deepProcessTree(node.children, node.type);
+                        var subNode = deepProcessTree(node.children, node.type);
                         if (node.type === 'tr') {
-                            var colNodesNumber = subNodes.nodeList.length;
+                            var colNodesNumber = subNode.nodeList.length;
                             var rebuildRowNodeStatus = [];
                             while (true) {
                                 var rebuildRowNode = new TreeNode('tr');
                                 for (var i = 0; i < colNodesNumber; i += 1) {
-                                    var subNode = subNodes.nodeList[i];
-                                    var newSubNode = subNode.clone();
-                                    var word = subNode.nodeList.shift();
+                                    var colNode = subNode.nodeList[i];
+                                    var newSubNode = colNode.clone();
+                                    var cutTextArray = colNode.text.length ? colNode.text.split('\n') : [];
+                                    var word = cutTextArray.shift();
                                     if (word === undefined) {
                                         rebuildRowNodeStatus[i] = true;
                                         word = '';
+                                        colNode.text = word;
                                     } else {
                                         rebuildRowNodeStatus[i] = false;
+                                        colNode.text = cutTextArray.join('\n');
                                     }
-                                    if (subNode.props.width !== 'auto') {
-                                        var colWidth = subNode.props.width || thisPrinter.options.colWidth;
+                                    if (colNode.props.width !== 'auto') {
+                                        var colWidth = colNode.props.width || thisPrinter.options.colWidth;
                                         newSubNode.setText(Utils.padRight(word, colWidth));
                                         rebuildRowNode.add(newSubNode);
                                     } else {
@@ -85,27 +99,41 @@ Printer.prototype.pretreat = function pretreat(basicHashTree) {
                                 if (isFinishedRebuilding) {
                                     break;
                                 } else {
+                                    rebuildRowNode.setProps(node.props);
+                                    var borderContent = Utils.padRight('', thisPrinter.options.borderWidth);
+                                    var borderNode = new TreeNode('td');
+                                    borderNode.setText(borderContent);
+                                    rebuildRowNode.nodeList = Utils.intersect(rebuildRowNode.nodeList, borderNode);
                                     parentTreeNodes.add(rebuildRowNode);
                                 }
                             }
                         } else {
-                            parentTreeNodes.add(subNodes);
+                            subNode.setProps(node.props);
+                            parentTreeNodes.add(subNode);
                         }
                     } else {
                         var trNode = new TreeNode('tr');
                         var tdNode = new TreeNode('td');
                         tdNode.setText(node.children);
                         trNode.add(tdNode);
-                        parentTreeNodes.add(trNode);
+                        if (node.type === 'table'){
+                            var tableNode = new TreeNode('table');
+                            tableNode.setProps(node.props);
+                            tableNode.add(trNode);
+                            parentTreeNodes.add(tableNode);
+                        } else {
+                            parentTreeNodes.add(trNode);
+                        }
                     }
                     break;
                 case 'td':
                     if (Utils.isString(node.children)) {
                         var treeNode = new TreeNode(node.type);
-                        treeNode.nodeList = [node.children];
+                        treeNode.setText(node.children);
                         if (node.props.width !== 'auto') {
                             var colWidth = node.props.width || thisPrinter.options.colWidth;
-                            treeNode.nodeList = Utils.cutStrLen(node.children, colWidth);
+                            var cutStrArray = Utils.cutStrLen(node.children, colWidth);
+                            treeNode.setText(cutStrArray.join('\n'));
                         }
                         treeNode.setProps(node.props);
                         parentTreeNodes.add(treeNode);
@@ -121,13 +149,8 @@ Printer.prototype.pretreat = function pretreat(basicHashTree) {
 };
 
 Printer.prototype.prepare = function prepare(hashTree) {
-    var rows = this.pretreat(hashTree);
-    var border = Utils.padRight('', this.options.borderWidth);
-    var printRows = [];
-    rows.forEach(function (row) {
-        printRows.push(row.join(border));
-    });
-    return printRows;
+    var printNode = this.pretreat(hashTree);
+    return printNode;
 };
 
 Printer.prototype.print = function print(hashTree) {
@@ -138,9 +161,9 @@ Printer.prototype.print = function print(hashTree) {
             throw new Error('parameter: hashTree type error!');
     }
 
-    var printRows = this.prepare(Utils.deepCopy(hashTree));
+    var printNode = this.prepare(Utils.deepCopy(hashTree));
     if (this.device) {
-        this.device.print(printRows);
+        this.device.print(printNode);
     }
 };
 
@@ -154,10 +177,14 @@ function PrintDevice(settings) {
 PrintDevice.prototype.init = function init() {
     this.deviceFont = {};
     this.deviceLineBox = {};
+    this.configureDevice();
+    this.reset();
+}
+
+PrintDevice.prototype.configureDevice = function configureDevice() {
     this.deviceFont.iFontSize = String(this.settings.fontSize || "30");
     this.deviceFont.strFontName = String(this.settings.fontFamily || "宋体");
     this.deviceLineBox.iHeight = String(this.settings.lineHeight || this.deviceFont.iFontSize);
-    this.reset();
 }
 
 PrintDevice.prototype.reset = function reset() {
@@ -165,26 +192,68 @@ PrintDevice.prototype.reset = function reset() {
     this.deviceLineBox.iY = '0';
 }
 
+PrintDevice.prototype.convert2Array = function convert2Array(printNode) {
+    var printRows = [];
+    var curProps = {};
+    var rootProps = {};
+    var getObjectLength = function getObjLength(obj) {
+        return Object.keys(obj).length;
+    };
+
+    function convert(node, rows) {
+        if (node.nodeType === 'tr') {
+            var text = node.toArray().join('');
+            var trNode = new TreeNode('tr');
+            trNode.setText(text);
+            if (getObjectLength(node.props)) {
+                curProps = Utils.assign(curProps, node.props);
+            }
+            trNode.setProps(curProps);
+            rows.push(trNode);
+            curProps = rootProps;
+        } else {
+            if (node.nodeType === 'table') {
+                if (getObjectLength(node.props)) {
+                    rootProps = node.props;
+                    curProps = rootProps;
+                }
+            }
+            node.nodeList.forEach(function (subNode){
+                convert(subNode, rows);
+            });
+        }
+    }
+
+    convert(printNode, printRows);
+    return printRows;
+}
+
 PrintDevice.prototype.createCommand = function createCommand(rows) {
     if (!rows || !rows.length) return;
     var thisDevice = this;
-    rows.forEach(function (text, index) {
-        var iY = (index + 1) * thisDevice.deviceLineBox.iHeight;
+    var iY = 0;
+    rows.forEach(function (node, index) {
         thisDevice.deviceLineBox.iY = String(iY);
+        thisDevice.deviceFont.iFontSize = String(node.props.fontSize || thisDevice.deviceFont.iFontSize);
+        thisDevice.deviceFont.strFontName = node.props.fontFamily || thisDevice.deviceFont.strFontName;
+        thisDevice.deviceLineBox.iHeight = String(node.props.lineHeight || thisDevice.deviceFont.iFontSize);
         thisDevice.commands.push({
-            text: text,
-            font: JSON.stringify(thisDevice.deviceFont),
-            box: JSON.stringify(thisDevice.deviceLineBox)
+            text: node.text,
+            fontSetting: JSON.stringify(thisDevice.deviceFont),
+            boxSetting: JSON.stringify(thisDevice.deviceLineBox)
         });
+        iY += parseInt(thisDevice.deviceLineBox.iHeight, 10);
+        thisDevice.configureDevice();
     });
 }
 
-PrintDevice.prototype.print = function print(rows) {
+PrintDevice.prototype.print = function print(printNode) {
     try {
+        var rows = this.convert2Array(printNode);
         this.createCommand(rows);
         if (this.commands.length) {
             this.commands.forEach(function (cmd) {
-                TicketClient.NotePrinter.AddSingleText(cmd.text, cmd.font, cmd.box);
+                TicketClient.NotePrinter.AddSingleText(cmd.text, cmd.fontSetting, cmd.boxSetting);
             });
             TicketClient.NotePrinter.Print();
         }

@@ -1,4 +1,26 @@
 var Utils = {
+    intersect: function intersect(arr, separator, hasBoundary) {
+        var newArr = [];
+        if (separator) {
+            var arrLen = arr.length;
+            if (arrLen === 1) {
+                newArr = arr.slice();
+            } else {
+                arr.forEach(function (item, index) {
+                    newArr.push(item);
+                    if ((index + 1) !== arrLen) {
+                        newArr.push(separator);
+                    }
+                });
+            }
+            if (hasBoundary) {
+                newArr.push(separator);
+                newArr.unshift(separator);
+            }
+            return newArr;
+        }
+        return arr;
+    },
     deepCopy: function deepCopy(obj) {
         try {
             return JSON.parse(JSON.stringify(obj));

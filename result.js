@@ -109,10 +109,10 @@ var hashTree = [{
     ]
 },
 {
-    "type": "table",
+    "type": "tr",
     "props": {
         "fontFamily": "宋体"
     },
-    "children": "test table"
+    "children": "test tr text"
 }
 ];

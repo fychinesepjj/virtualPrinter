@@ -5,19 +5,49 @@
     <title>Document</title>
     <script src="result.js"></script>
     <script src="utils.js"></script>
-    <script src="printerProcessor.js"></script>
+    <script src="printer.js"></script>
+    <script src="tools.js"></script>
 </head>
 <body>
     <button id="print">print</button>
+    <button id="compile">compile</button>
 </body>
+<script id="tpl" type="text/html">
+    <table>
+        <tr fontSize="30">乌鲁木齐市融鑫源华夏天山影院 退货小票</tr>
+        <tr></tr>
+        <tr>2016-11-08 12:00:00</tr>
+        <tr>NO.: 20161154687965</tr>
+        <tr>操作员：1000</tr>
+        <tr width="auto">============================</tr>
+        <tr><td  width="11">商品名称</td><td width="7">单价</td><td>金额</td></tr>
+        <tr><td>百事可乐瓶可乐</td><td width="8">3.00*1</td><td>3.00</td></tr>
+        <tr><td>爆米花</td><td width="8">5.00*2</td><td>10.00</td></tr>
+        <tr width="auto">============================</tr>
+        <tr><td width="6"></td><td width="7">合计：</td><td width="3">3</td><td>-99.00</td></tr>
+        <tr><td width="6"></td><td width="7">优惠：</td><td width="3"></td><td>0.00</td></tr>
+        <tr><td width="4"></td><td>实付款:</td><td width="2"></td><td>0.00</td></tr>
+        <tr width="auto">============================</tr>
+        <tr><td width="6"></td><td width="6">现金：</td><td width="4"></td><td>13.00</td></tr>
+        <tr width="auto">============================</tr>
+        <tr width="auto">**谢谢惠顾！欢迎再次光临**</tr>
+    </table>
+</script>
+
 <script>
-var device = new PrintDevice({
-    fontSize: 28,
-    fontFamily: 'SimSun-ExtB' //M+ 1m light
-})
-var p = new Printer(device);
+var str = document.getElementById('tpl').innerHTML;
+var p = PRINTER.getPrinter('hashTree', {
+            fontSize: 24,
+            fontFamily: 'SimSun-ExtB' //M+ 1m light
+        });
+var compile = new WIDGET.Tools.LabelCompiler(str);
 document.getElementById('print').addEventListener('click', function (){
-    p.print(hashTree);
+    var tmpHashTree = compile();
+    p.print(tmpHashTree);
+}, false);
+
+document.getElementById('compile').addEventListener('click', function (){
+    console.log(compile());
 }, false);
 </script>
 </html>

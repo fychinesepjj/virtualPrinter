@@ -1,4 +1,36 @@
-function Printer (device, options) {
+function TreeNode(nodeType) {
+    if (!nodeType) {
+        throw new Error('TreeNode parameter is missing!');
+    }
+    this.nodeType = nodeType;
+    this.nodeList = [];
+    this.props = {};
+    this.text = '';
+}
+
+TreeNode.prototype.add = function add(node) {
+    node && this.nodeList.push(node)
+}
+
+TreeNode.prototype.setProps = function setProps(props) {
+    props && (this.props = Utils.deepCopy(props));
+}
+
+TreeNode.prototype.setText = function setText(text) {
+    text && (this.text = text);
+}
+
+TreeNode.prototype.clone = function clone(isDeepClone) {
+    var cloneNode = new TreeNode(this.nodeType);
+    if (isDeepClone) {
+        cloneNode.nodeList = Utils.deepCopy(this.nodeList);
+    }
+    cloneNode.setProps(this.props);
+    return cloneNode;
+}
+
+
+function Printer(device, options) {
     if (!device) {
         throw new Error('parameter: device is missing!');
     }
@@ -9,9 +41,9 @@ function Printer (device, options) {
 
 Printer.prototype.pretreat = function pretreat(basicHashTree) {
     var thisPrinter = this;
-    function deepProcessTree (hashTree) {
+    function deepProcessTree (hashTree, type) {
         var nodeList = [];
-        var printNodes = [];
+        var parentTreeNodes = new TreeNode(type);
         if (Utils.isPlainObject(hashTree)) {
             nodeList.push(hashTree);
         } else if (Utils.isArray(hashTree)) {
@@ -23,61 +55,69 @@ Printer.prototype.pretreat = function pretreat(basicHashTree) {
                 case 'table':
                 case 'tr':
                     if (Utils.isArray(node.children) && node.children.length) {
-                        var processResult = deepProcessTree(node.children);
+                        var subNodes = deepProcessTree(node.children, node.type);
                         if (node.type === 'tr') {
-                            var colLen = processResult.length;
-                            var processResultStatus = [];
+                            var colNodesNumber = subNodes.nodeList.length;
+                            var rebuildRowNodeStatus = [];
                             while (true) {
-                                var rows = [];
-                                for (var i = 0; i < colLen; i += 1) {
-                                    var td = node.children[i];
-                                    var col = processResult[i];
-                                    var word = col.shift();
+                                var rebuildRowNode = new TreeNode('tr');
+                                for (var i = 0; i < colNodesNumber; i += 1) {
+                                    var subNode = subNodes.nodeList[i];
+                                    var newSubNode = subNode.clone();
+                                    var word = subNode.nodeList.shift();
                                     if (word === undefined) {
-                                        processResultStatus[i] = true;
+                                        rebuildRowNodeStatus[i] = true;
                                         word = '';
                                     } else {
-                                        processResultStatus[i] = false;
+                                        rebuildRowNodeStatus[i] = false;
                                     }
-                                    if (td.props.width !== 'auto') {
-                                        var colWidth = td.props.width || thisPrinter.options.colWidth;
-                                        rows.push(Utils.padRight(word, colWidth));
+                                    if (subNode.props.width !== 'auto') {
+                                        var colWidth = subNode.props.width || thisPrinter.options.colWidth;
+                                        newSubNode.setText(Utils.padRight(word, colWidth));
+                                        rebuildRowNode.add(newSubNode);
                                     } else {
-                                        rows.push(word);
+                                        newSubNode.setText(word);
+                                        rebuildRowNode.add(newSubNode);
                                     }
                                 }
-                                var isFinishedPadding = processResultStatus.length && 
-                                                        processResultStatus.every(function (status) {return status === true;});
-                                if (isFinishedPadding) {
+                                var isFinishedRebuilding = rebuildRowNodeStatus.length && 
+                                                        rebuildRowNodeStatus.every(function (status) {return status === true;});
+                                if (isFinishedRebuilding) {
                                     break;
                                 } else {
-                                    printNodes.push(rows);
+                                    parentTreeNodes.add(rebuildRowNode);
                                 }
                             }
                         } else {
-                            printNodes = printNodes.concat(processResult);
+                            parentTreeNodes.add(subNodes);
                         }
                     } else {
-                        printNodes.push([node.children]);
+                        var trNode = new TreeNode('tr');
+                        var tdNode = new TreeNode('td');
+                        tdNode.setText(node.children);
+                        trNode.add(tdNode);
+                        parentTreeNodes.add(trNode);
                     }
                     break;
                 case 'td':
                     if (Utils.isString(node.children)) {
-                        var cutArray = [node.children];
+                        var treeNode = new TreeNode(node.type);
+                        treeNode.nodeList = [node.children];
                         if (node.props.width !== 'auto') {
                             var colWidth = node.props.width || thisPrinter.options.colWidth;
-                            cutArray = Utils.cutStrLen(node.children, colWidth);
+                            treeNode.nodeList = Utils.cutStrLen(node.children, colWidth);
                         }
-                        printNodes.push(cutArray);
+                        treeNode.setProps(node.props);
+                        parentTreeNodes.add(treeNode);
                     }
                     break;
             }
         }
         
-        return printNodes;
+        return parentTreeNodes;
     }
 
-    return deepProcessTree(basicHashTree);
+    return deepProcessTree(basicHashTree, 'root');
 };
 
 Printer.prototype.prepare = function prepare(hashTree) {
@@ -105,7 +145,7 @@ Printer.prototype.print = function print(hashTree) {
 };
 
 
-function PrintDevice (settings) {
+function PrintDevice(settings) {
     this.commands = [];
     this.settings = Utils.deepCopy(settings);
     this.init();
@@ -114,7 +154,7 @@ function PrintDevice (settings) {
 PrintDevice.prototype.init = function init() {
     this.deviceFont = {};
     this.deviceLineBox = {};
-    this.deviceFont.iFontSize = String(this.settings.fontSize || "36");
+    this.deviceFont.iFontSize = String(this.settings.fontSize || "30");
     this.deviceFont.strFontName = String(this.settings.fontFamily || "宋体");
     this.deviceLineBox.iHeight = String(this.settings.lineHeight || this.deviceFont.iFontSize);
     this.reset();

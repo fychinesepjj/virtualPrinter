@@ -1,3 +1,14 @@
+var NODE_TYPE = {
+    tr: 'tr',
+    td: 'td',
+    table: 'table',
+    root: 'root'
+};
+
+function createTreeNode(nodeType) {
+    return new TreeNode(nodeType);
+}
+
 function TreeNode(nodeType) {
     if (!nodeType) {
         throw new Error('TreeNode parameter is missing!');
@@ -31,7 +42,7 @@ TreeNode.prototype.setText = function setText(text) {
 }
 
 TreeNode.prototype.clone = function clone(isDeepClone) {
-    var cloneNode = new TreeNode(this.nodeType);
+    var cloneNode = createTreeNode(this.nodeType);
     if (isDeepClone) {
         cloneNode.nodeList = Utils.deepCopy(this.nodeList);
     }
@@ -54,7 +65,7 @@ Printer.prototype.pretreat = function pretreat(basicHashTree) {
     var thisPrinter = this;
     function deepProcessTree (hashTree, type) {
         var nodeList = [];
-        var parentTreeNodes = new TreeNode(type);
+        var parentTreeNodes = createTreeNode(type);
         if (Utils.isPlainObject(hashTree)) {
             nodeList.push(hashTree);
         } else if (Utils.isArray(hashTree)) {
@@ -63,15 +74,15 @@ Printer.prototype.pretreat = function pretreat(basicHashTree) {
         while (nodeList.length) {
             var node = nodeList.shift();
             switch (node.type) {
-                case 'table':
-                case 'tr':
+                case NODE_TYPE.table:
+                case NODE_TYPE.tr:
                     if (Utils.isArray(node.children) && node.children.length) {
                         var subNode = deepProcessTree(node.children, node.type);
-                        if (node.type === 'tr') {
+                        if (node.type === NODE_TYPE.tr) {
                             var colNodesNumber = subNode.nodeList.length;
                             var rebuildRowNodeStatus = [];
                             while (true) {
-                                var rebuildRowNode = new TreeNode('tr');
+                                var rebuildRowNode = createTreeNode(NODE_TYPE.tr);
                                 for (var i = 0; i < colNodesNumber; i += 1) {
                                     var colNode = subNode.nodeList[i];
                                     var newSubNode = colNode.clone();
@@ -101,7 +112,7 @@ Printer.prototype.pretreat = function pretreat(basicHashTree) {
                                 } else {
                                     rebuildRowNode.setProps(node.props);
                                     var borderContent = Utils.padRight('', thisPrinter.options.borderWidth);
-                                    var borderNode = new TreeNode('td');
+                                    var borderNode = createTreeNode(NODE_TYPE.td);
                                     borderNode.setText(borderContent);
                                     rebuildRowNode.nodeList = Utils.intersect(rebuildRowNode.nodeList, borderNode);
                                     parentTreeNodes.add(rebuildRowNode);
@@ -112,12 +123,12 @@ Printer.prototype.pretreat = function pretreat(basicHashTree) {
                             parentTreeNodes.add(subNode);
                         }
                     } else {
-                        var trNode = new TreeNode('tr');
-                        var tdNode = new TreeNode('td');
+                        var trNode = createTreeNode(NODE_TYPE.tr);
+                        var tdNode = createTreeNode(NODE_TYPE.td);
                         tdNode.setText(node.children);
                         trNode.add(tdNode);
-                        if (node.type === 'table'){
-                            var tableNode = new TreeNode('table');
+                        if (node.type === NODE_TYPE.table){
+                            var tableNode = createTreeNode(NODE_TYPE.table);
                             tableNode.setProps(node.props);
                             tableNode.add(trNode);
                             parentTreeNodes.add(tableNode);
@@ -126,9 +137,9 @@ Printer.prototype.pretreat = function pretreat(basicHashTree) {
                         }
                     }
                     break;
-                case 'td':
+                case NODE_TYPE.td:
                     if (Utils.isString(node.children)) {
-                        var treeNode = new TreeNode(node.type);
+                        var treeNode = createTreeNode(node.type);
                         treeNode.setText(node.children);
                         if (node.props.width !== 'auto') {
                             var colWidth = node.props.width || thisPrinter.options.colWidth;
@@ -145,7 +156,7 @@ Printer.prototype.pretreat = function pretreat(basicHashTree) {
         return parentTreeNodes;
     }
 
-    return deepProcessTree(basicHashTree, 'root');
+    return deepProcessTree(basicHashTree, NODE_TYPE.root);
 };
 
 Printer.prototype.prepare = function prepare(hashTree) {
@@ -201,9 +212,9 @@ PrintDevice.prototype.convert2Array = function convert2Array(printNode) {
     };
 
     function convert(node, rows) {
-        if (node.nodeType === 'tr') {
+        if (node.nodeType === NODE_TYPE.tr) {
             var text = node.toArray().join('');
-            var trNode = new TreeNode('tr');
+            var trNode = createTreeNode(NODE_TYPE.tr);
             trNode.setText(text);
             if (getObjectLength(node.props)) {
                 curProps = Utils.assign(curProps, node.props);
@@ -212,7 +223,7 @@ PrintDevice.prototype.convert2Array = function convert2Array(printNode) {
             rows.push(trNode);
             curProps = rootProps;
         } else {
-            if (node.nodeType === 'table') {
+            if (node.nodeType === NODE_TYPE.table) {
                 if (getObjectLength(node.props)) {
                     rootProps = node.props;
                     curProps = rootProps;

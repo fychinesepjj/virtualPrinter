@@ -1,11 +1,15 @@
-(function (exports) {
-    var NODE_TYPE = {
-        col: 'td',
-        row: 'tr',
-        wrapper: 'table',
-        root: 'root'
-    };
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(["./utils", "./enum"], factory);
+    } else if (typeof exports === 'object') {
+        module.exports = factory(require('./utils'), require('./enum'));
+    } else {
+        root.VirtualPrinter = factory(root.Utils, root.Enum);
+    }
 
+})(this, function (Utils, Enum) {
+    var nodeType = Enum.nodeType;
+    
     function createTreeNode(nodeType) {
         return new TreeNode(nodeType);
     }
@@ -52,16 +56,21 @@
         return cloneNode;
     }
 
-    function Printer(device, options) {
+    /**
+    * hash打印机，主要用于把hash转换成打印设备可以识别的TreeNode对象形式
+    * var newOptions = {colWidth: 10, borderWidth: 1} 设置列宽和边框宽度
+    * var p = new exports.VirtualPrinter.HashTreePrinter(printDeviceObject, newOptions);
+    */
+    function VirtualPrinter(device, options) {
         if (!device) {
             throw new Error('parameter: device is missing!');
         }
         this.device = device;
         options = options || {};
-        this.options = Utils.assign({colWidth: 10, borderWidth: 2}, options);
+        this.options = Utils.assign({colWidth: 10, borderWidth: 1}, options);
     }
 
-    Printer.prototype.pretreat = function pretreat(basicHashTree) {
+    VirtualPrinter.prototype.pretreat = function pretreat(basicHashTree) {
         var thisPrinter = this;
         function deepProcessTree (hashTree, type) {
             var nodeList = [];
@@ -74,15 +83,15 @@
             while (nodeList.length) {
                 var node = nodeList.shift();
                 switch (node.type) {
-                    case NODE_TYPE.wrapper:
-                    case NODE_TYPE.row:
+                    case nodeType.WRAPPER:
+                    case nodeType.ROW:
                         if (Utils.isArray(node.children) && node.children.length) {
                             var subNode = deepProcessTree(node.children, node.type);
-                            if (node.type === NODE_TYPE.row) {
+                            if (node.type === nodeType.ROW) {
                                 var colNodesNumber = subNode.nodeList.length;
                                 var rebuildRowNodeStatus = [];
                                 while (true) {
-                                    var rebuildRowNode = createTreeNode(NODE_TYPE.row);
+                                    var rebuildRowNode = createTreeNode(nodeType.ROW);
                                     for (var i = 0; i < colNodesNumber; i += 1) {
                                         var colNode = subNode.nodeList[i];
                                         var newSubNode = colNode.clone();
@@ -99,7 +108,14 @@
                                         if (colNode.props.width !== 'auto') {
                                             var colWidth = colNode.props.width || thisPrinter.options.colWidth;
                                             newSubNode.props.width = colWidth;
-                                            newSubNode.setText(Utils.padRight(word, colWidth));
+                                            var align = colNode.props.align || 'left';
+                                            var paddingStr = '';
+                                            if (align == 'left') {
+                                                paddingStr = Utils.padRight(word, colWidth);
+                                            } else {
+                                                paddingStr = Utils.padLeft(word, colWidth);
+                                            }
+                                            newSubNode.setText(paddingStr);
                                             rebuildRowNode.add(newSubNode);
                                         } else {
                                             newSubNode.setText(word);
@@ -113,7 +129,7 @@
                                     } else {
                                         rebuildRowNode.setProps(node.props);
                                         var borderContent = Utils.padRight('', thisPrinter.options.borderWidth);
-                                        var borderNode = createTreeNode(NODE_TYPE.col);
+                                        var borderNode = createTreeNode(nodeType.COL);
                                         borderNode.setText(borderContent);
                                         rebuildRowNode.nodeList = Utils.intersect(rebuildRowNode.nodeList, borderNode);
                                         parentTreeNodes.add(rebuildRowNode);
@@ -124,12 +140,12 @@
                                 parentTreeNodes.add(subNode);
                             }
                         } else {
-                            var rowNode = createTreeNode(NODE_TYPE.row);
-                            var colNode = createTreeNode(NODE_TYPE.col);
+                            var rowNode = createTreeNode(nodeType.ROW);
+                            var colNode = createTreeNode(nodeType.COL);
                             colNode.setText(node.children);
                             rowNode.add(colNode);
-                            if (node.type === NODE_TYPE.wrapper){
-                                var wrapperNode = createTreeNode(NODE_TYPE.wrapper);
+                            if (node.type === nodeType.WRAPPER){
+                                var wrapperNode = createTreeNode(nodeType.WRAPPER);
                                 wrapperNode.setProps(node.props);
                                 wrapperNode.add(rowNode);
                                 parentTreeNodes.add(wrapperNode);
@@ -139,7 +155,7 @@
                             }
                         }
                         break;
-                    case NODE_TYPE.col:
+                    case nodeType.COL:
                         if (Utils.isString(node.children)) {
                             var treeNode = createTreeNode(node.type);
                             treeNode.setText(node.children);
@@ -158,15 +174,15 @@
             return parentTreeNodes;
         }
 
-        return deepProcessTree(basicHashTree, NODE_TYPE.root);
+        return deepProcessTree(basicHashTree, nodeType.ROOT);
     };
 
-    Printer.prototype.prepare = function prepare(hashTree) {
+    VirtualPrinter.prototype.prepare = function prepare(hashTree) {
         var printNode = this.pretreat(hashTree);
         return printNode;
     };
 
-    Printer.prototype.print = function print(hashTree) {
+    VirtualPrinter.prototype.print = function print(hashTree) {
         if (!hashTree) {
             throw new Error('parameter: hashTree is missing!');
         }
@@ -180,127 +196,5 @@
         }
     };
 
-
-    function PrintDevice(settings) {
-        this.commands = [];
-        settings = settings || {};
-        this.settings = Utils.deepCopy(settings);
-        this.init();
-    }
-
-    PrintDevice.prototype.init = function init() {
-        this.deviceFont = {};
-        this.deviceLineBox = {};
-        this.configureDevice();
-        this.reset();
-    }
-
-    PrintDevice.prototype.configureDevice = function configureDevice() {
-        this.deviceFont.iFontSize = String(this.settings.fontSize || "30");
-        this.deviceFont.strFontName = String(this.settings.fontFamily || "宋体");
-        this.deviceLineBox.iHeight = String(this.settings.lineHeight || this.deviceFont.iFontSize);
-    }
-
-    PrintDevice.prototype.reset = function reset() {
-        this.deviceLineBox.iX = '0';
-        this.deviceLineBox.iY = '0';
-    }
-
-    PrintDevice.prototype.convert2Array = function convert2Array(printNode) {
-        var printRows = [];
-        var curProps = {};
-        var rootProps = {};
-        var getObjectLength = function getObjLength(obj) {
-            return Object.keys(obj).length;
-        };
-
-        function convert(node, rows) {
-            if (node.nodeType === NODE_TYPE.row) {
-                var text = node.toArray().join('');
-                var rowNode = createTreeNode(NODE_TYPE.row);
-                rowNode.setText(text);
-                if (getObjectLength(node.props)) {
-                    curProps = Utils.assign(curProps, node.props);
-                }
-                rowNode.setProps(curProps);
-                rows.push(rowNode);
-                curProps = rootProps;
-            } else {
-                if (node.nodeType === NODE_TYPE.wrapper) {
-                    if (getObjectLength(node.props)) {
-                        rootProps = node.props;
-                        curProps = rootProps;
-                    }
-                }
-                node.nodeList.forEach(function (subNode){
-                    convert(subNode, rows);
-                });
-            }
-        }
-
-        convert(printNode, printRows);
-        return printRows;
-    }
-
-    PrintDevice.prototype.createCommand = function createCommand(rows) {
-        if (!rows || !rows.length) return;
-        var thisDevice = this;
-        var iY = 0;
-        rows.forEach(function (node, index) {
-            thisDevice.deviceLineBox.iY = String(iY);
-            thisDevice.deviceFont.iFontSize = String(node.props.fontSize || thisDevice.deviceFont.iFontSize);
-            thisDevice.deviceFont.strFontName = node.props.fontFamily || thisDevice.deviceFont.strFontName;
-            thisDevice.deviceLineBox.iHeight = String(node.props.lineHeight || thisDevice.deviceFont.iFontSize);
-            thisDevice.commands.push({
-                text: node.text,
-                fontSetting: JSON.stringify(thisDevice.deviceFont),
-                boxSetting: JSON.stringify(thisDevice.deviceLineBox)
-            });
-            iY += parseInt(thisDevice.deviceLineBox.iHeight, 10);
-            thisDevice.configureDevice();
-        });
-    }
-
-    PrintDevice.prototype.print = function print(printNode) {
-        try {
-            var rows = this.convert2Array(printNode);
-            this.createCommand(rows);
-            if (this.commands.length) {
-                this.commands.forEach(function (cmd) {
-                    TicketClient.NotePrinter.AddSingleText(cmd.text, cmd.fontSetting, cmd.boxSetting);
-                });
-                TicketClient.NotePrinter.Print();
-            }
-        } catch (e) {
-            console.error(e, 'printDevice：print');
-        } finally {
-            this.commands = [];
-            this.reset();
-        }
-    }
-
-    var _TicketClient = {
-        NotePrinter: {
-            AddSingleText: function (){
-                console.log(arguments);
-            },
-            Print: function (){
-                console.log('print')
-            }
-        }
-    };
-
-    exports.TicketClient = exports.TicketClient || _TicketClient;
-
-    exports.PRINTER = exports.PRINTER = function () {
-        return {
-            getPrinter: function getPrinter(type, options) {
-                if (type === 'hashTree') {
-                    var device = new PrintDevice(options);
-                    return new Printer(device, options);
-                }
-            }
-        };
-    }();
-
-})(window);
+    return VirtualPrinter;
+});

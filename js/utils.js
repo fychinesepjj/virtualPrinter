@@ -4,12 +4,12 @@
     } else if (typeof exports === 'object') {
         module.exports = factory();
     } else {
-        root.Utils = factory();
+        root.utils = factory();
     }
 
 })(this, function () {
     
-    var Utils = {
+    var utils = {
         intersect: function intersect(arr, separator, hasBoundary) {
             var newArr = [];
             if (separator) {
@@ -36,7 +36,7 @@
             try {
                 return JSON.parse(JSON.stringify(obj));
             } catch (e) {
-                console.error(e, 'Utils: deepCopy');
+                console.error(e, 'utils: deepCopy');
             }
             return null;
         },
@@ -196,5 +196,5 @@
         }
     };
 
-    return Utils;
+    return utils;
 });

@@ -4,17 +4,17 @@
     } else if (typeof exports === 'object') {
         module.exports = factory(require('./utils'));
     } else {
-        root.Compiler = factory(root.Utils);
+        root.Compiler = factory(root.utils);
     }
 
-})(this, function (Utils) {
+})(this, function (utils) {
     
     var getTreeMapping = function getTreeMapping(typewords) {
         var mapping = {};
         var keys = typewords;
         var getConvertFunc = function getConvertFunc(key) {
             return function convert(propsStr, innerStr) {
-                return 'ctx.convert("' + key + '",' + propsStr + ',' + Utils.trimRight(innerStr, ',') + '),';
+                return 'ctx.convert("' + key + '",' + propsStr + ',' + utils.trimRight(innerStr, ',') + '),';
             };
         };
         keys.forEach(function keyEach(key) {
@@ -25,8 +25,9 @@
 
     /**
     * 类HTML标签编译器，主要用于把标签转换成Hash形式表示
-    * var labelCompiler = new exports.Tools.LabelCompiler(renderedTpl);
-    * var hashTree = labelCompiler();
+    * renderedTpl = '<table><tr><td>id</td><td>name</td></tr></table>'
+    * var Compiler = new Compiler(renderedTpl);
+    * var hashTree = Compiler();
     */
     function Compiler(str, options) {
         this.options = options || {};
@@ -35,7 +36,7 @@
         if (!Object.keys(this.funcMappingTree).length) {
             throw new Error('Compiler init fail: funcMappingTree is empty!');
         }
-        if (!Utils.isString(str)) {
+        if (!utils.isString(str)) {
             throw new Error('Compiler str type error!');
         }
         return this.compile(str.trim());
@@ -70,7 +71,7 @@
                     }
                 });
             }
-            return Utils.trimRight(compileResult, ',') || parsingStr;
+            return utils.trimRight(compileResult, ',') || parsingStr;
         };
 
         var hashContext = {
@@ -83,7 +84,7 @@
                     type: type,
                     props: props
                 };
-                if (args.length === 1 && !Utils.isPlainObject(args[0])) {
+                if (args.length === 1 && !utils.isPlainObject(args[0])) {
                     treeHash.children =  args[0];
                 } else {
                     treeHash.children =  args.slice();

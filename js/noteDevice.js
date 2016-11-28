@@ -1,24 +1,24 @@
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
-        define(["./utils", "./enum"], factory);
+        define(["./utils", "./enums", "./treeNode"], factory);
     } else if (typeof exports === 'object') {
-        module.exports = factory(require('./utils'), require('./enum'));
+        module.exports = factory(require('./utils'), require('./enums'), require('./treeNode'));
     } else {
-        root.NotePrinterDevice = factory(root.Utils, root.Enum);
+        root.NotePrinterDevice = factory(root.utils, root.enums, root.treeNode);
     }
 
-})(this, function (Utils, Enum) {
-     var nodeType = Enum.nodeType;
+})(this, function (utils, enums, treeNode) {
+    var nodeType = enums.nodeType;
 
     /**
-    * 打印设备，针对不同打印机特性进行打印设置
+    * 打印设备，针对不同打印机特性进行打印
     * var newOptions = {"fontSize": 33, "fontFamily": "宋体"}; 全局配置
-    * var device = new exports.NotePrinterDevice(newOptions); 初始化对象
+    * var device = new NotePrinterDevice(newOptions); 初始化对象
     */
     function NotePrinterDevice(settings) {
         this.commands = [];
         settings = settings || {};
-        this.settings = Utils.deepCopy(settings);
+        this.settings = utils.deepCopy(settings);
         this.init();
     }
 
@@ -51,10 +51,10 @@
         function convert(node, rows) {
             if (node.nodeType === nodeType.ROW) {
                 var text = node.toArray().join('');
-                var rowNode = createTreeNode(nodeType.ROW);
+                var rowNode = treeNode.createTreeNode(nodeType.ROW);
                 rowNode.setText(text);
                 if (getObjectLength(node.props)) {
-                    curProps = Utils.assign(curProps, node.props);
+                    curProps = utils.assign(curProps, node.props);
                 }
                 rowNode.setProps(curProps);
                 rows.push(rowNode);

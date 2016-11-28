@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <title>Document</title>
-    <script src="result.js"></script>
-    <script src="utils.js"></script>
-    <script src="printer.js"></script>
-    <script src="tools.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/enums.js"></script>
+    <script src="../js/compiler.js"></script>
+    <script src="../js/treeNode.js"></script>
+    <script src="../js/noteDevice.js"></script>
+    <script src="../js/printer.js"></script>
+    <script src="./client.js"></script>
 </head>
 <body>
     <button id="print">print</button>
@@ -39,17 +42,16 @@
 
 <script>
 var str = document.getElementById('tpl').innerHTML;
-var p = PRINTER.getPrinter('hashTree', {
-            fontSize: 24,
-            fontFamily: 'SimSun-ExtB' //M+ 1m light
-        });
-var compile = new WIDGET.Tools.LabelCompiler(str);
-document.getElementById('print').addEventListener('click', function (){
+var compile = new Compiler(str);
+document.getElementById('print').addEventListener('click', function clickPrint(){
     var tmpHashTree = compile();
+    var newOptions = {"fontSize": 33, "fontFamily": "宋体"};
+    var device = new NotePrinterDevice(newOptions);
+    var p = new VirtualPrinter(device);
     p.print(tmpHashTree);
 }, false);
 
-document.getElementById('compile').addEventListener('click', function (){
+document.getElementById('compile').addEventListener('click', function clickCompile(){
     console.log(compile());
 }, false);
 </script>

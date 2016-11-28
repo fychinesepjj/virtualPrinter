@@ -4,11 +4,15 @@
     } else if (typeof exports === 'object') {
         module.exports = factory();
     } else {
-        root.Enum = root.Enum || {};
-        root.Enum.nodeType = factory();
+        root.enums = root.enums || {};
+        root.enums.nodeType = factory();
     }
 
 })(this, function () {
+
+    /**
+     * 枚举类型：节点类型
+     */
     var nodeType = {
         COL: 'td',
         ROW: 'tr',

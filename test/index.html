@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Document</title>
+    <title>Virtual Printer Testing</title>
+    <script src="../js/client.js"></script>
     <script src="../js/utils.js"></script>
     <script src="../js/enums.js"></script>
     <script src="../js/compiler.js"></script>
     <script src="../js/treeNode.js"></script>
     <script src="../js/noteDevice.js"></script>
     <script src="../js/printer.js"></script>
-    <script src="./client.js"></script>
 </head>
 <body>
     <button id="print">print</button>
@@ -17,7 +17,7 @@
 </body>
 <script id="tpl" type="text/html">
     <table>
-        <tr fontSize="30"><td width="24">乌鲁木齐市融鑫源华夏天山影院 退货小票</td></tr>
+        <tr fontSize="30"><td width="24">沃尔玛大卖场 销售小票</td></tr>
         <tr></tr>
         <tr>2016-11-08 12:00:00</tr>
         <tr>NO.: 20161154687965</tr>
@@ -41,13 +41,14 @@
 </script>
 
 <script>
-var str = document.getElementById('tpl').innerHTML;
-var compile = new Compiler(str);
+var noteTpl = document.getElementById('tpl').innerHTML;
+var compile = new Compiler(noteTpl);
 document.getElementById('print').addEventListener('click', function clickPrint(){
     var tmpHashTree = compile();
-    var newOptions = {"fontSize": 33, "fontFamily": "宋体"};
-    var device = new NotePrinterDevice(newOptions);
-    var p = new VirtualPrinter(device);
+    var deviceOptions = {"fontSize": 33, "fontFamily": "宋体"};
+    var printerOptions = {colWidth: 10, borderWidth: 1};
+    var device = new NoteDevice(deviceOptions);
+    var p = new VirtualPrinter(device, printerOptions);
     p.print(tmpHashTree);
 }, false);
 

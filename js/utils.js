@@ -10,6 +10,10 @@
 })(this, function () {
     
     var utils = {
+        objectValues: function objectValues(obj) {
+            var keys = Object.keys(obj);
+            return keys.map(function(k){return obj[k];});
+        },
         intersect: function intersect(arr, separator, hasBoundary) {
             var newArr = [];
             if (separator) {

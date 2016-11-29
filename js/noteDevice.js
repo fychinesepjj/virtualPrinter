@@ -1,46 +1,46 @@
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
-        define(["./utils", "./enums", "./treeNode"], factory);
+        define(["./utils", "./enums", "./treeNode", "./client"], factory);
     } else if (typeof exports === 'object') {
-        module.exports = factory(require('./utils'), require('./enums'), require('./treeNode'));
+        module.exports = factory(require('./utils'), require('./enums'), require('./treeNode'), require('./client'));
     } else {
-        root.NotePrinterDevice = factory(root.utils, root.enums, root.treeNode);
+        root.NoteDevice = factory(root.utils, root.enums, root.treeNode, root.TicketClient);
     }
 
-})(this, function (utils, enums, treeNode) {
+})(this, function (utils, enums, treeNode, client) {
     var nodeType = enums.nodeType;
 
     /**
     * 打印设备，针对不同打印机特性进行打印
     * var newOptions = {"fontSize": 33, "fontFamily": "宋体"}; 全局配置
-    * var device = new NotePrinterDevice(newOptions); 初始化对象
+    * var device = new NoteDevice(newOptions); 初始化对象
     */
-    function NotePrinterDevice(settings) {
+    function NoteDevice(settings) {
         this.commands = [];
         settings = settings || {};
         this.settings = utils.deepCopy(settings);
         this.init();
     }
 
-    NotePrinterDevice.prototype.init = function init() {
+    NoteDevice.prototype.init = function init() {
         this.deviceFont = {};
         this.deviceLineBox = {};
         this.configureDevice();
         this.reset();
     }
 
-    NotePrinterDevice.prototype.configureDevice = function configureDevice() {
+    NoteDevice.prototype.configureDevice = function configureDevice() {
         this.deviceFont.iFontSize = String(this.settings.fontSize || "30");
         this.deviceFont.strFontName = String(this.settings.fontFamily || "宋体");
         this.deviceLineBox.iHeight = String(this.settings.lineHeight || this.deviceFont.iFontSize);
     }
 
-    NotePrinterDevice.prototype.reset = function reset() {
+    NoteDevice.prototype.reset = function reset() {
         this.deviceLineBox.iX = '0';
         this.deviceLineBox.iY = '0';
     }
 
-    NotePrinterDevice.prototype.convert2Array = function convert2Array(printNode) {
+    NoteDevice.prototype.convert2Array = function convert2Array(printNode) {
         var printRows = [];
         var curProps = {};
         var rootProps = {};
@@ -77,7 +77,7 @@
     }
 
     // 创建打印指令
-    NotePrinterDevice.prototype.createCommand = function createCommand(rows) {
+    NoteDevice.prototype.createCommand = function createCommand(rows) {
         if (!rows || !rows.length) return;
         var thisDevice = this;
         var iY = 0;
@@ -96,15 +96,15 @@
         });
     }
 
-    NotePrinterDevice.prototype.print = function print(printNode) {
+    NoteDevice.prototype.print = function print(printNode) {
         try {
             var rows = this.convert2Array(printNode);
             this.createCommand(rows);
             if (this.commands.length) {
                 this.commands.forEach(function (cmd) {
-                    TicketClient.NotePrinter.AddSingleText(cmd.text, cmd.fontSetting, cmd.boxSetting);
+                    client.NotePrinter.AddSingleText(cmd.text, cmd.fontSetting, cmd.boxSetting);
                 });
-                TicketClient.NotePrinter.Print();
+                client.NotePrinter.Print();
             }
         } catch (e) {
             console.error(e, 'printDevice：print');
@@ -114,5 +114,5 @@
         }
     }
 
-    return NotePrinterDevice;
+    return NoteDevice;
 });

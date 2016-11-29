@@ -1,0 +1,22 @@
+{
+  "name": "virtualprinter",
+  "version": "1.0.0",
+  "description": "实现对标签结构内容的打印输出，方便对票类打印内容的快速开发实现",
+  "main": "app.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://git.oschina.net/fychinesepjj/virtualPrinter.git"
+  },
+  "keywords": [
+    "虚拟打印机",
+    "小票打印机"
+  ],
+  "author": "jjpan",
+  "license": "ISC"
+}

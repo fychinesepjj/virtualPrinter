@@ -1,13 +1,13 @@
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
-        define(["./utils"], factory);
+        define(["./utils", "./enums"], factory);
     } else if (typeof exports === 'object') {
-        module.exports = factory(require('./utils'));
+        module.exports = factory(require('./utils'), require('./enums'));
     } else {
-        root.Compiler = factory(root.utils);
+        root.Compiler = factory(root.utils, root.enums);
     }
 
-})(this, function (utils) {
+})(this, function (utils, enums) {
     
     var getTreeMapping = function getTreeMapping(typewords) {
         var mapping = {};
@@ -29,10 +29,9 @@
     * var Compiler = new Compiler(renderedTpl);
     * var hashTree = Compiler();
     */
-    function Compiler(str, options) {
-        this.options = options || {};
-        this.options.typewords = this.options.typewords || ['table', 'tr', 'td'];
-        this.funcMappingTree = getTreeMapping(this.options.typewords);
+    function Compiler(str) {
+        var typewords = utils.objectValues(enums.nodeType);
+        this.funcMappingTree = getTreeMapping(typewords);
         if (!Object.keys(this.funcMappingTree).length) {
             throw new Error('Compiler init fail: funcMappingTree is empty!');
         }

@@ -4,15 +4,11 @@
     } else if (typeof exports === 'object') {
         module.exports = factory();
     } else {
-        root.enums = root.enums || {};
-        root.enums.nodeType = factory();
+        root.enums = factory();
     }
 
 })(this, function () {
-
-    /**
-     * 枚举类型：节点类型
-     */
+    var enums = {};
     var nodeType = {
         COL: 'td',
         ROW: 'tr',
@@ -20,5 +16,6 @@
         ROOT: 'root'
     };
 
-    return nodeType;
+    enums.nodeType = nodeType;
+    return enums;
 });

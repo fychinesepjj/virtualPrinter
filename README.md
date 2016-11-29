@@ -15,7 +15,6 @@
 
 ## API说明
 ### Compiler(labelTpl)
-* labelTpl:必填，打印模板，一般三层结构，使用`table`标签可控制打印样式
 ```javascript
     <table>
         <tr fontSize="30" fontFamily="黑体">
@@ -29,6 +28,7 @@
         </tr>
     </table>
 ```
+* labelTpl:必填，打印模板，一般三层结构，使用`table`标签可控制打印样式
 * `fontSize`: 用于`tr`,`table`等非`td`的标签，用于控制字体大小
 * `fontFamily`： 用于`tr`,`table`等非`td`的标签，用于控制字体类型
 * `width`: 用于`td`，用于控制单元格宽度，单位是空格，默认值10，`auto`表示占满整行
